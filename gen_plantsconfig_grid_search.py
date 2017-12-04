@@ -33,8 +33,8 @@ def main(protein_fname, ligand_fname, output_dir, radius, step):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    constant_params = '# input\nprotein_file %s\n' % os.path.relpath(protein_fname, output_dir)
-    constant_params += '\nligand_file %s\n\n' % os.path.relpath(ligand_fname, output_dir)
+    constant_params = '# input\nprotein_file %s\n' % os.path.abspath(protein_fname)
+    constant_params += '\nligand_file %s\n\n' % os.path.abspath(ligand_fname)
     constant_params += '# scoring function and search settings\nscoring_function chemplp\nsearch_speed speed1\n\n'
     constant_params += '# write single mol2 files (e.g. for RMSD calculation)\nwrite_multi_mol2 0\n\n'
     constant_params += '# cluster algorithm\ncluster_structures 1\ncluster_rmsd 1.0\n\n'
@@ -45,9 +45,9 @@ def main(protein_fname, ligand_fname, output_dir, radius, step):
                 coord = (int(x), int(y), int(z))
                 with open(output_dir + '/plantsconfig_x%i_y%i_z%i' % coord, 'wt') as f:
                     f.write(constant_params)
-                    f.write('# output\noutput_dir dock_x%i_y%i_z%i\n\n' % coord)
+                    f.write('# output\noutput_dir %s/dock_x%i_y%i_z%i\n\n' % (os.path.abspath(output_dir), coord[0], coord[1], coord[2]))
                     f.write('# binding site definition\nbindingsite_center %i %i %i\n' % coord)
-                    f.write('bindingsite_radius %f\n' % step)
+                    f.write('bindingsite_radius %f\n' % radius)
 
 
 if __name__ == '__main__':
