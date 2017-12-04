@@ -1,46 +1,76 @@
 #!/usr/bin/env python3
 
-__author__ = 'Pavel Polishchuk'
-
+import argparse
 import os
 
-plants_grid_dir = '/home/pavlo/IMTM/RAGE/dock/PLANTS/4OF5/grid_dock_01'
-plants_grid_dir = '/home/pavlo/IMTM/eEF2/eef2/dock_plants/grid_dock_01'
-plants_grid_dir = '/home/pavlo/IMTM/eEF2/u2a/dock_plants/grid_dock_01'
-plants_grid_dir = '/home/pavlo/IMTM/eEF2/u5/dock_plants/grid_dock_01'
+__author__ = 'Pavel Polishchuk'
 
-if not os.path.exists(plants_grid_dir):
-    os.makedirs(plants_grid_dir)
 
-protein_file = '../../protein.mol2'
-ligand_file = '../../../05-0777_complete.mol2'
+def get_coord_range(mol2_fname):
+    x = []
+    y = []
+    z = []
+    with open(mol2_fname) as f:
+        line = f.readline()
+        while line.strip() != "@<TRIPOS>ATOM":
+            line = f.readline()
+        line = f.readline()
+        while not line.strip() or line[0] != "@":
+            coords = line.strip().split()[2:5]
+            coords = tuple(map(float, coords))
+            x.append(coords[0])
+            y.append(coords[1])
+            z.append(coords[2])
+            line = f.readline()
+    return min(x), max(x), min(y), max(y), min(z), max(z)
 
-constant_params = '# input\nprotein_file ' + protein_file + '\nligand_file ' + ligand_file + '\n'
-constant_params += '# scoring function and search settings\nscoring_function chemplp\nsearch_speed speed1\n'
-constant_params += '# write single mol2 files (e.g. for RMSD calculation)\nwrite_multi_mol2 0\n'
-constant_params += '# cluster algorithm\ncluster_structures 10\ncluster_rmsd 1.0\n'
-# constant_params += '# flexible side chains\nflexible_protein_side_chain_string ARG38\nflexible_protein_side_chain_string ASN54\nflexible_protein_side_chain_string ASP2\nflexible_protein_side_chain_string ASP62\nflexible_protein_side_chain_string GLN16\nflexible_protein_side_chain_string GLU104\nflexible_protein_side_chain_string GLU4\nflexible_protein_side_chain_string GLU61\nflexible_protein_side_chain_string GLU66\nflexible_protein_side_chain_string GLU69\nflexible_protein_side_chain_string GLU89\nflexible_protein_side_chain_string GLU90\nflexible_protein_side_chain_string GLY1\nflexible_protein_side_chain_string ILE11\nflexible_protein_side_chain_string ILE81\nflexible_protein_side_chain_string LYS100\nflexible_protein_side_chain_string LYS13\nflexible_protein_side_chain_string LYS22\nflexible_protein_side_chain_string LYS25\nflexible_protein_side_chain_string LYS27\nflexible_protein_side_chain_string LYS39\nflexible_protein_side_chain_string LYS5\nflexible_protein_side_chain_string LYS53\nflexible_protein_side_chain_string LYS55\nflexible_protein_side_chain_string LYS7\nflexible_protein_side_chain_string LYS72\nflexible_protein_side_chain_string LYS73\nflexible_protein_side_chain_string LYS79\nflexible_protein_side_chain_string LYS8\nflexible_protein_side_chain_string LYS86\nflexible_protein_side_chain_string LYS87\nflexible_protein_side_chain_string LYS88\nflexible_protein_side_chain_string LYS99\nflexible_protein_side_chain_string MET12\nflexible_protein_side_chain_string SER47\nflexible_protein_side_chain_string THR28\nflexible_protein_side_chain_string VAL83\n'
 
-x_range = (-78, 24)
-y_range = (-5, 86)
-z_range = (-110, 5)
+def main(protein_fname, ligand_fname, output_dir, radius, step):
 
-x_range = (176, 214)
-y_range = (200, 244)
-z_range = (340, 396)
+    coords = get_coord_range(protein_fname)
+    coords = tuple(map(int, coords))
 
-x_range = (211, 267)
-y_range = (240, 295)
-z_range = (178, 225)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-for x in range(x_range[0], x_range[1], 5):
-    for y in range(y_range[0], y_range[1], 5):
-        for z in range(z_range[0], z_range[1], 5):
-            coord = (round(x, 1), round(y, 1), round(z, 1))
-            with open(plants_grid_dir + '/plantsconfig_x%f_y%f_z%f' % coord, 'wt') as f:
-                f.write(constant_params)
-                f.write('# output\noutput_dir rigid_dock_x%f_y%f_z%f\n' % coord)
-                f.write('# binding site definition\nbindingsite_center %f %f %f\nbindingsite_radius 20.0\n' % coord)
+    constant_params = '# input\nprotein_file %s\n' % os.path.relpath(protein_fname, output_dir)
+    constant_params += '\nligand_file %s\n\n' % os.path.relpath(ligand_fname, output_dir)
+    constant_params += '# scoring function and search settings\nscoring_function chemplp\nsearch_speed speed1\n\n'
+    constant_params += '# write single mol2 files (e.g. for RMSD calculation)\nwrite_multi_mol2 0\n\n'
+    constant_params += '# cluster algorithm\ncluster_structures 1\ncluster_rmsd 1.0\n\n'
 
+    for x in range(coords[0], coords[1], step):
+        for y in range(coords[2], coords[3], step):
+            for z in range(coords[4], coords[5], step):
+                coord = (int(x), int(y), int(z))
+                with open(output_dir + '/plantsconfig_x%i_y%i_z%i' % coord, 'wt') as f:
+                    f.write(constant_params)
+                    f.write('# output\noutput_dir dock_x%i_y%i_z%i\n\n' % coord)
+                    f.write('# binding site definition\nbindingsite_center %i %i %i\n' % coord)
+                    f.write('bindingsite_radius %f\n' % step)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Create plantsconfig files for grid search.')
+    parser.add_argument('-p', '--protein', metavar='protein.mol2', required=True,
+                        help='input protein MOL2 file.')
+    parser.add_argument('-l', '--ligand', metavar='ligand.mol2', required=True,
+                        help='input ligand MOL2 file.')
+    parser.add_argument('-d', '--output_dir', metavar='output_dir', required=True,
+                        help='output dir where plantsconfig files will be stored.')
+    parser.add_argument('-r', '--radius', metavar='VALUE', required=False, default=20,
+                        help='binding site radius. Default: 20.')
+    parser.add_argument('-s', '--step', metavar='INTEGER', required=False, default=5,
+                        help='step of the grid search. Default: 5.')
+
+    args = vars(parser.parse_args())
+    for o, v in args.items():
+        if o == "protein": protein_fname = v
+        if o == "ligand": ligand_fname = v
+        if o == "radius": radius = float(v)
+        if o == "output_dir": output_dir = v
+        if o == "step": step = int(v)
+
+    main(protein_fname, ligand_fname, output_dir, radius, step)
 
 
