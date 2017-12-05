@@ -2,14 +2,15 @@
 
 import argparse
 import os
+import numpy as np
+
+from itertools import product
 
 __author__ = 'Pavel Polishchuk'
 
 
-def get_coord_range(mol2_fname):
-    x = []
-    y = []
-    z = []
+def get_atom_coords(mol2_fname):
+    m = []
     with open(mol2_fname) as f:
         line = f.readline()
         while line.strip() != "@<TRIPOS>ATOM":
@@ -17,18 +18,24 @@ def get_coord_range(mol2_fname):
         line = f.readline()
         while not line.strip() or line[0] != "@":
             coords = line.strip().split()[2:5]
-            coords = tuple(map(float, coords))
-            x.append(coords[0])
-            y.append(coords[1])
-            z.append(coords[2])
+            m.append(tuple(map(float, coords)))
             line = f.readline()
-    return min(x), max(x), min(y), max(y), min(z), max(z)
+    return np.array(m)
+
+
+def binding_site_coords(mol2_fname, step):
+    # yield a point if it is close to protein
+    m = get_atom_coords(mol2_fname)
+    min_values = np.min(m, 0).astype(int)
+    max_values = np.max(m, 0).astype(int)
+    for x, y, z in product(range(min_values[0], max_values[0], step),
+                           range(min_values[1], max_values[1], step),
+                           range(min_values[2], max_values[2], step)):
+        if min(np.sum((m - [x, y, z]) ** 2, 1) ** 0.5) <= 5:
+            yield x, y, z
 
 
 def main(protein_fname, ligand_fname, output_dir, radius, step):
-
-    coords = get_coord_range(protein_fname)
-    coords = tuple(map(int, coords))
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -38,16 +45,13 @@ def main(protein_fname, ligand_fname, output_dir, radius, step):
     constant_params += '# scoring function and search settings\nscoring_function chemplp\nsearch_speed speed1\n\n'
     constant_params += '# write single mol2 files (e.g. for RMSD calculation)\nwrite_multi_mol2 0\n\n'
     constant_params += '# cluster algorithm\ncluster_structures 1\ncluster_rmsd 1.0\n\n'
+    constant_params += 'bindingsite_radius %f\n\n' % radius
 
-    for x in range(coords[0], coords[1], step):
-        for y in range(coords[2], coords[3], step):
-            for z in range(coords[4], coords[5], step):
-                coord = (int(x), int(y), int(z))
-                with open(output_dir + '/plantsconfig_x%i_y%i_z%i' % coord, 'wt') as f:
-                    f.write(constant_params)
-                    f.write('# output\noutput_dir %s/dock_x%i_y%i_z%i\n\n' % (os.path.abspath(output_dir), coord[0], coord[1], coord[2]))
-                    f.write('# binding site definition\nbindingsite_center %i %i %i\n' % coord)
-                    f.write('bindingsite_radius %f\n' % radius)
+    for coord in binding_site_coords(protein_fname, step):
+        with open(output_dir + '/plantsconfig_x%i_y%i_z%i' % coord, 'wt') as f:
+            f.write(constant_params)
+            f.write('# output\noutput_dir %s/dock_x%i_y%i_z%i\n\n' % (os.path.abspath(output_dir), coord[0], coord[1], coord[2]))
+            f.write('# binding site definition\nbindingsite_center %i %i %i\n' % coord)
 
 
 if __name__ == '__main__':
