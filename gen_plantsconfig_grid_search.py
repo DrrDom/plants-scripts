@@ -32,7 +32,7 @@ def binding_site_coords(mol2_fname, step):
                            range(min_values[1], max_values[1], step),
                            range(min_values[2], max_values[2], step)):
         if min(np.sum((m - [x, y, z]) ** 2, 1) ** 0.5) <= 5:
-            yield x, y, z
+            yield round(x), round(y), round(z)
 
 
 def main(protein_fname, ligand_fname, output_dir, radius, step):
@@ -58,8 +58,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create plantsconfig files for grid search.')
     parser.add_argument('-p', '--protein', metavar='protein.mol2', required=True,
                         help='input protein MOL2 file.')
-    parser.add_argument('-l', '--ligand', metavar='ligand.mol2', required=True,
-                        help='input ligand MOL2 file.')
+    parser.add_argument('-l', '--ligands', metavar='ligands.mol2', required=True,
+                        help='input MOL2 file with ligands.')
     parser.add_argument('-d', '--output_dir', metavar='output_dir', required=True,
                         help='output dir where plantsconfig files will be stored.')
     parser.add_argument('-r', '--radius', metavar='VALUE', required=False, default=20,
