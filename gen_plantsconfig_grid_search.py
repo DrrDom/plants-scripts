@@ -70,7 +70,7 @@ if __name__ == '__main__':
     args = vars(parser.parse_args())
     for o, v in args.items():
         if o == "protein": protein_fname = v
-        if o == "ligand": ligand_fname = v
+        if o == "ligands": ligand_fname = v
         if o == "radius": radius = float(v)
         if o == "output_dir": output_dir = v
         if o == "step": step = int(v)
