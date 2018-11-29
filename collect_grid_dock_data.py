@@ -21,19 +21,16 @@ def get_atom_coords(mol2_fname):
 
 
 def main(input_dname, output_fname):
-    output = []
-    for fname in glob.iglob('%s/**/bestranking.csv' % input_dname, recursive=True):
-        with open(fname) as f:
-            f.readline()
-            for line in f:
-                mol_name, score = line.split(',', 2)[:2]
-                coords = get_atom_coords(os.path.join(os.path.dirname(fname), mol_name + '.mol2'))
-                center = np.average(coords, 0)
-                item = os.path.dirname(fname).split('/') + [mol_name, score, center[0], center[1], center[2]]
-                output.append(item)
     with open(output_fname, 'wt') as f:
-        for item in output:
-            f.write('\t'.join(map(str, item)) + '\n')
+        for fname in glob.iglob('%s/**/bestranking.csv' % input_dname, recursive=True):
+            with open(fname) as f:
+                f.readline()
+                for line in f:
+                    mol_name, score = line.split(',', 2)[:2]
+                    coords = get_atom_coords(os.path.join(os.path.dirname(fname), mol_name + '.mol2'))
+                    center = np.average(coords, 0)
+                    item = os.path.dirname(fname).split('/') + [mol_name, score, center[0], center[1], center[2]]
+                    f.write('\t'.join(map(str, item)) + '\n')
 
 
 if __name__ == '__main__':
