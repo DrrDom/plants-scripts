@@ -21,7 +21,7 @@ def get_atom_coords(mol2_fname):
 
 
 def main(input_dname, output_fname):
-    with open(output_fname, 'wt') as f:
+    with open(output_fname, 'wt') as fout:
         for fname in glob.iglob('%s/**/bestranking.csv' % input_dname, recursive=True):
             with open(fname) as f:
                 f.readline()
@@ -30,7 +30,7 @@ def main(input_dname, output_fname):
                     coords = get_atom_coords(os.path.join(os.path.dirname(fname), mol_name + '.mol2'))
                     center = np.average(coords, 0)
                     item = os.path.dirname(fname).split('/') + [mol_name, score, center[0], center[1], center[2]]
-                    f.write('\t'.join(map(str, item)) + '\n')
+                    fout.write('\t'.join(map(str, item)) + '\n')
 
 
 if __name__ == '__main__':
